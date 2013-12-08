@@ -12,6 +12,7 @@ OUT_DIR="/PATH/WHERE/IT/SHOULD/GO/out"
 USERCCDIR="/home/YOURUSER/.ccache"
 CODENAME="DEVICECODENAME"
 DEFCONFIG=$CODENAME"_defconfig"
+NRJOBS=$(( $(nproc) * 2 ))
 #ftpstuff
 RETRY="60s";
 MAXCOUNT=30;
@@ -102,7 +103,7 @@ make $DEFCONFIG
 echo "[BUILD]: Changing CONFIG_LOCALVERSION to: -kernel-"$CODENAME"-"$BRANCH" ...";
 sed -i "/CONFIG_LOCALVERSION=\"/c\CONFIG_LOCALVERSION=\"-kernel-"$CODENAME"-"$BRANCH"\"" .config
 echo "[BUILD]: Bulding the kernel...";
-time make -j8 || { exit 1; }
+time make -j$NRJOBS || { exit 1; }
 echo "[BUILD]: Done!...";
 
 gotoout
