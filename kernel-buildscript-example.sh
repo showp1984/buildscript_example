@@ -9,6 +9,7 @@ TOOLCHAIN="/PATH/TO/YOUR/TOOLCHAIN/bin"
 PREBUILT="/PATH/TO/PREBUILTS/MEANING/ZIPCONTENTS/prebuilt"
 OUT_DIR="/PATH/WHERE/IT/SHOULD/GO/out"
 #compile neccesities
+USERCCDIR="/home/YOURUSER/.ccache"
 CODENAME="DEVICECODENAME"
 DEFCONFIG=$CODENAME"_defconfig"
 #ftpstuff
@@ -60,7 +61,6 @@ if [ ! -d "$TOOLCHAIN_CCACHE" ]; then
     chmod -R 777 bin-ccache
     echo "[BUILD]: CCACHE: Done...";
 fi
-USERCCDIR="/home/gitlab_ci/.ccache"
 export CCACHE_DIR=$USERCCDIR
 ###CCACHE CONFIGURATION ENDS HERE, DO NOT MESS WITH IT!!!
 
