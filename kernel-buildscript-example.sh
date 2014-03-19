@@ -1,15 +1,20 @@
 #!/bin/bash
+#switches
+USEAROMA=0;
+USEPREBUILT=0;
+USECHKS=0;
+USEFTP=0;
 #sourcedir
-SOURCE_DIR="/PATH/TO/YOUR/SOURCE"
+SOURCE_DIR="$(pwd)"
 #crosscompile stuff
 CROSSARCH="arm"
 CROSSCC="$CROSSARCH-eabi-"
 TOOLCHAIN="/PATH/TO/YOUR/TOOLCHAIN/bin"
 #our used directories
 PREBUILT="/PATH/TO/PREBUILTS/MEANING/ZIPCONTENTS/prebuilt"
-OUT_DIR="/PATH/WHERE/IT/SHOULD/GO/out"
+OUT_DIR="$(pwd)/out"
 #compile neccesities
-USERCCDIR="/home/YOURUSER/.ccache"
+USERCCDIR="$HOME/.ccache"
 CODENAME="DEVICECODENAME"
 DEFCONFIG=$CODENAME"_defconfig"
 NRJOBS=$(( $(nproc) * 2 ))
@@ -34,6 +39,42 @@ echo "[BUILD]: ####################################";
 echo "[BUILD]: Building branch: $BRANCH";
 echo "[BUILD]: ####################################";
 echo "[BUILD]: ####################################";
+
+OUT_ENABLED=1;
+if [ ! -d "$OUT_DIR" ]; then
+    echo "[BUILD]: Directory '$OUT_DIR' which is configure as output directory does not exist!";
+    VALID=0;
+    while [[ $VALID -eq 0 ]]
+    do
+        echo "[Y|y] Create it.";
+        echo "[N|n] Don't create it, this will disable the output directory.";
+        echo "Choose an option:";
+        read DECISION;
+        case "$DECISION" in
+            y|Y)
+            VALID=1;
+            echo "Creating directory...";
+            mkdir $OUT_DIR
+            mkdir $OUT_DIR/kernel
+            mkdir $OUT_DIR/modules
+            ;;
+            n|N)
+            VALID=1;
+            OUT_ENABLED=0;
+            echo "Disabling output directory...";
+            ;;
+            *)
+            echo "Error: Unknown input ($DECISION), try again.";
+        esac
+    done
+else
+    if [ ! -d "$OUT_DIR/kernel" ]; then
+        mkdir $OUT_DIR/kernel
+    fi
+    if [ ! -d "$OUT_DIR/modules" ]; then
+        mkdir $OUT_DIR/modules
+    fi
+fi
 
 ###CCACHE CONFIGURATION STARTS HERE, DO NOT MESS WITH IT!!!
 TOOLCHAIN_CCACHE="$TOOLCHAIN/../bin-ccache"
@@ -76,8 +117,10 @@ gotosource() {
 }
 
 gotoout() {
-  echo "[BUILD]: Changing directory to $OUT_DIR...";
-  cd $OUT_DIR
+    if [[ ! $OUT_ENABLED -eq 0 ]]; then
+        echo "[BUILD]: Changing directory to $OUT_DIR...";
+        cd $OUT_DIR;
+    fi
 }
 
 gotosource
@@ -106,65 +149,72 @@ echo "[BUILD]: Bulding the kernel...";
 time make -j$NRJOBS || { exit 1; }
 echo "[BUILD]: Done!...";
 
-gotoout
-
-#prepare our zip structure
-echo "[BUILD]: Cleaning out directory...";
-find $OUT_DIR/* -maxdepth 0 ! -name '*.zip' ! -name '*.md5' ! -name '*.sha1' -exec rm -rf '{}' ';'
-echo "[BUILD]: Copying prebuilts to out directory...";
-cp -R $PREBUILT/* $OUT_DIR/
-echo "[BUILD]: Changing aroma version/data/device to: $BRANCH-$REV/$DATE/$CODENAME...";
-sed -i "/ini_set(\"rom_version\",/c\ini_set(\"rom_version\", \""$BRANCH-$REV"\");" $OUT_DIR/META-INF/com/google/android/aroma-config
-sed -i "/ini_set(\"rom_date\",/c\ini_set(\"rom_date\", \""$DATE"\");" $OUT_DIR/META-INF/com/google/android/aroma-config
-sed -i "/ini_set(\"rom_device\",/c\ini_set(\"rom_device\", \""$CODENAME"\");" $OUT_DIR/META-INF/com/google/android/aroma-config
-gotosource
-
-#copy stuff for our zip
-echo "[BUILD]: Copying kernel (zImage) to $OUT_DIR/kernel/...";
-cp arch/arm/boot/zImage $OUT_DIR/kernel/
-echo "[BUILD]: Copying modules (*.ko) to $OUT_DIR/modules/...";
-find $SOURCE_DIR/ -name \*.ko -exec cp '{}' $OUT_DIR/modules/ ';'
-echo "[BUILD]: Done!...";
-
-gotoout
-
-#create zip and clean folder
-echo "[BUILD]: Creating zip: kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip ...";
-zip -r kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip . -x "*.zip" "*.sha1" "*.md5"
-echo "[BUILD]: Cleaning out directory...";
-find $OUT_DIR/* -maxdepth 0 ! -name '*.zip' ! -name '*.md5' ! -name '*.sha1' -exec rm -rf '{}' ';'
-echo "[BUILD]: Done!...";
-
-echo "[BUILD]: Creating sha1 & md5 sums...";
-md5sum kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip > kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip.md5
-sha1sum kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip > kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip.sha1
-
-echo "[BUILD]: Testing connection to $HOST...";
-SUCCESS=0;
-ZERO=0;
-COUNT=0;
-while [ $SUCCESS -eq $ZERO ]
-do
-    COUNT=$(($COUNT + 1));
-    if [ $COUNT -eq $MAXCOUNT ]; then
-        exit 1;
+if [[ ! $OUT_ENABLED -eq 0 ]]; then
+    gotoout
+    #prepare our zip structure
+    echo "[BUILD]: Cleaning out directory...";
+    find $OUT_DIR/* -maxdepth 0 ! -name '*.zip' ! -name '*.md5' ! -name '*.sha1' -exec rm -rf '{}' ';'
+    if [ ! $USEPREBUILT -eq 0 ]; then
+        echo "[BUILD]: Copying prebuilts to out directory...";
+        cp -R $PREBUILT/* $OUT_DIR/
     fi
-    ping -c1 $HOST
-    case "$?" in
-        0)
-        echo "[BUILD]: $HOST is online, continuing...";
-        SUCCESS=1 ;;
-        1)
-        echo "[BUILD]: Packet Loss while pinging $HOST. Retrying in $RETRY!";
-        sleep $RETRY ;;
-        2)
-        echo "[BUILD]: $HOST is unknown (offline). Retrying in $RETRY!";
-        sleep $RETRY ;;
-        *)
-        echo "[BUILD]: Some unknown error occured while trying to connect to $HOST. Retrying in $RETRY seconds!";
-        sleep $RETRY ;;
-    esac
-done
+    if [ ! $USEAROMA -eq 0 ]; then
+        echo "[BUILD]: Changing aroma version/data/device to: $BRANCH-$REV/$DATE/$CODENAME...";
+        sed -i "/ini_set(\"rom_version\",/c\ini_set(\"rom_version\", \""$BRANCH-$REV"\");" $OUT_DIR/META-INF/com/google/android/aroma-config
+        sed -i "/ini_set(\"rom_date\",/c\ini_set(\"rom_date\", \""$DATE"\");" $OUT_DIR/META-INF/com/google/android/aroma-config
+        sed -i "/ini_set(\"rom_device\",/c\ini_set(\"rom_device\", \""$CODENAME"\");" $OUT_DIR/META-INF/com/google/android/aroma-config
+    fi
+    gotosource
+
+    #copy stuff for our zip
+    echo "[BUILD]: Copying kernel (zImage) to $OUT_DIR/kernel/...";
+    cp arch/arm/boot/zImage $OUT_DIR/kernel/
+    echo "[BUILD]: Copying modules (*.ko) to $OUT_DIR/modules/...";
+    find $SOURCE_DIR/ -name \*.ko -exec cp '{}' $OUT_DIR/modules/ ';'
+    echo "[BUILD]: Done!...";
+
+    gotoout
+
+    #create zip and clean folder
+    echo "[BUILD]: Creating zip: kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip ...";
+    zip -r kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip . -x "*.zip" "*.sha1" "*.md5"
+    echo "[BUILD]: Cleaning out directory...";
+    find $OUT_DIR/* -maxdepth 0 ! -name '*.zip' ! -name '*.md5' ! -name '*.sha1' -exec rm -rf '{}' ';'
+    echo "[BUILD]: Done!...";
+
+    if [ ! $USECHKS -eq 0 ]; then
+        echo "[BUILD]: Creating sha1 & md5 sums...";
+        md5sum kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip > kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip.md5
+        sha1sum kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip > kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip.sha1
+    fi
+
+    if [ ! $USEFTP -eq 0 ]; then
+        echo "[BUILD]: Testing connection to $HOST...";
+        SUCCESS=0;
+        ZERO=0;
+        COUNT=0;
+        while [ $SUCCESS -eq $ZERO ]
+        do
+            COUNT=$(($COUNT + 1));
+            if [ $COUNT -eq $MAXCOUNT ]; then
+                exit 1;
+            fi
+            ping -c1 $HOST
+            case "$?" in
+                0)
+                echo "[BUILD]: $HOST is online, continuing...";
+                SUCCESS=1 ;;
+                1)
+                echo "[BUILD]: Packet Loss while pinging $HOST. Retrying in $RETRY!";
+                sleep $RETRY ;;
+                2)
+                echo "[BUILD]: $HOST is unknown (offline). Retrying in $RETRY!";
+                sleep $RETRY ;;
+                *)
+                echo "[BUILD]: Some unknown error occured while trying to connect to $HOST. Retrying in $RETRY seconds!";
+                sleep $RETRY ;;
+            esac
+        done
 
 echo "[BUILD]: Uploading files to $HOST...";
 # Uses the ftp command with the -inv switches.
@@ -179,6 +229,8 @@ put kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip.md5
 put kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip.sha1
 bye
 End-Of-Session
+    fi
+fi
 
 echo "[BUILD]: All done!...";
 
