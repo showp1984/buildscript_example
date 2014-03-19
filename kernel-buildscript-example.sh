@@ -155,8 +155,10 @@ if [[ ! $OUT_ENABLED -eq 0 ]]; then
     echo "[BUILD]: Cleaning out directory...";
     find $OUT_DIR/* -maxdepth 0 ! -name '*.zip' ! -name '*.md5' ! -name '*.sha1' -exec rm -rf '{}' ';'
     if [ ! $USEPREBUILT -eq 0 ]; then
-        echo "[BUILD]: Copying prebuilts to out directory...";
-        cp -R $PREBUILT/* $OUT_DIR/
+        if [ -d "$PREBUILT" ]; then
+            echo "[BUILD]: Copying prebuilts to out directory...";
+            cp -R $PREBUILT/* $OUT_DIR/
+        fi
     fi
     if [ ! $USEAROMA -eq 0 ]; then
         echo "[BUILD]: Changing aroma version/data/device to: $BRANCH-$REV/$DATE/$CODENAME...";
