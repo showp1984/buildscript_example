@@ -146,7 +146,7 @@ make $DEFCONFIG
 echo "[BUILD]: Changing CONFIG_LOCALVERSION to: -kernel-"$CODENAME"-"$BRANCH" ...";
 sed -i "/CONFIG_LOCALVERSION=\"/c\CONFIG_LOCALVERSION=\"-kernel-"$CODENAME"-"$BRANCH"\"" .config
 echo "[BUILD]: Bulding the kernel...";
-time make -j$NRJOBS || { exit 1; }
+time make -j$NRJOBS || { return 1; }
 echo "[BUILD]: Done!...";
 
 if [[ ! $OUT_ENABLED -eq 0 ]]; then
@@ -197,7 +197,7 @@ if [[ ! $OUT_ENABLED -eq 0 ]]; then
         do
             COUNT=$(($COUNT + 1));
             if [ $COUNT -eq $MAXCOUNT ]; then
-                exit 1;
+                return 1;
             fi
             ping -c1 $HOST
             case "$?" in
