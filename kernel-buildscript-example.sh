@@ -129,7 +129,7 @@ gotosource
 echo "[BUILD]: Checking out latest changes on $BRANCH from origin...";
 git clean -f -d
 git fetch --all
-git reset --hard origin/$BRANCH
+git reset --hard $BRANCH
 
 #saving new rev
 REV=$(git log --pretty=format:'%h' -n 1)
