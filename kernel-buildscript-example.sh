@@ -153,7 +153,7 @@ if [[ ! $OUT_ENABLED -eq 0 ]]; then
     gotoout
     #prepare our zip structure
     echo "[BUILD]: Cleaning out directory...";
-    find $OUT_DIR/* -maxdepth 0 ! -name '*.zip' ! -name '*.md5' ! -name '*.sha1' -exec rm -rf '{}' ';'
+    find $OUT_DIR/* -maxdepth 0 ! -name '*.zip' ! -name '*.md5' ! -name '*.sha1' ! -name kernel ! -name modules ! -name out -exec rm -rf '{}' ';'
     if [ ! $USEPREBUILT -eq 0 ]; then
         if [ -d "$PREBUILT" ]; then
             echo "[BUILD]: Copying prebuilts to out directory...";
@@ -235,4 +235,5 @@ End-Of-Session
 fi
 
 echo "[BUILD]: All done!...";
+gotosource
 
