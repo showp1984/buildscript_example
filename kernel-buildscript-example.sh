@@ -181,7 +181,7 @@ if [[ ! $OUT_ENABLED -eq 0 ]]; then
     echo "[BUILD]: Creating zip: kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip ...";
     zip -r kernel_"$CODENAME"_"$DATE"_"$BRANCH"-"$REV".zip . -x "*.zip" "*.sha1" "*.md5"
     echo "[BUILD]: Cleaning out directory...";
-    find $OUT_DIR/* -maxdepth 0 ! -name '*.zip' ! -name '*.md5' ! -name '*.sha1' -exec rm -rf '{}' ';'
+    find $OUT_DIR/* -maxdepth 0 ! -name '*.zip' ! -name '*.md5' ! -name '*.sha1' ! -name kernel ! -name modules ! -name out -exec rm -rf '{}' ';'
     echo "[BUILD]: Done!...";
 
     if [ ! $USECHKS -eq 0 ]; then
