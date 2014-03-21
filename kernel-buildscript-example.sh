@@ -126,10 +126,9 @@ gotoout() {
 gotosource
 
 #Checking out latest upstream changes
-echo "[BUILD]: Checking out latest changes on $BRANCH from origin...";
+echo "[BUILD]: Checking out branch: $BRANCH...";
 git clean -f -d
-git fetch --all
-git reset --hard $BRANCH
+git checkout $BRANCH
 
 #saving new rev
 REV=$(git log --pretty=format:'%h' -n 1)
