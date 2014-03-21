@@ -40,6 +40,11 @@ echo "[BUILD]: Building branch: $BRANCH";
 echo "[BUILD]: ####################################";
 echo "[BUILD]: ####################################";
 
+#Checking out latest upstream changes
+echo "[BUILD]: Checking out branch: $BRANCH...";
+git clean -f -d
+git checkout $BRANCH
+
 OUT_ENABLED=1;
 if [ ! -d "$OUT_DIR" ]; then
     echo "[BUILD]: Directory '$OUT_DIR' which is configure as output directory does not exist!";
@@ -124,11 +129,6 @@ gotoout() {
 }
 
 gotosource
-
-#Checking out latest upstream changes
-echo "[BUILD]: Checking out branch: $BRANCH...";
-git clean -f -d
-git checkout $BRANCH
 
 #saving new rev
 REV=$(git log --pretty=format:'%h' -n 1)
